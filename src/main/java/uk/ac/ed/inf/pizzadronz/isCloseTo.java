@@ -4,15 +4,21 @@ import uk.ac.ed.inf.pizzadronz.data.LongLat;
 import uk.ac.ed.inf.pizzadronz.constants.SystemConstants;
 
 public class isCloseTo {
-    public static Integer isCloseTo(LongLat a, LongLat b) {
-        double distance = new distanceTo(a, b).calculatedistanceTo();
+    private distanceTo distanceTo;
+    private final Integer isClose;
+    public isCloseTo(double distance,double threshold) {
+
         if (distance<0){
-            return -1;
+            this.isClose=-1;
         }
-        if (distance <= new SystemConstants().IS_CLOSE_THRESHOLD) {
-            return 1;
+        else if (distance < threshold) {
+            this.isClose = 1;
+        }else {
+            this.isClose = 0;
         }
-        return 0;
+    }
+    public Integer isClose() {
+        return isClose;
     }
 
 }

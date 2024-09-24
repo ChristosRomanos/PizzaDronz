@@ -25,7 +25,7 @@ public class distanceTo {
         this.position2 = position2;
     }
 
-    public double calculatedistanceTo() {
+    public double calculateDistanceTo() {
         if (position1 == null || position2 == null) {
             return -1;
         }
