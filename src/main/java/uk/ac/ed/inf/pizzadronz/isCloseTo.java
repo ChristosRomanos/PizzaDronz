@@ -1,10 +1,6 @@
 package uk.ac.ed.inf.pizzadronz;
 
-import uk.ac.ed.inf.pizzadronz.data.LongLat;
-import uk.ac.ed.inf.pizzadronz.constants.SystemConstants;
-
 public class isCloseTo {
-    private distanceTo distanceTo;
     private final Integer isClose;
     public isCloseTo(double distance,double threshold) {
 

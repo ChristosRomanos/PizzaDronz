@@ -5,7 +5,7 @@ import uk.ac.ed.inf.pizzadronz.data.LongLat;
 import java.util.List;
 
 public class Region {
-    private String name;
+    private final String name;
     private List<LongLat> vertices;
     public String getName() {
         return name;
