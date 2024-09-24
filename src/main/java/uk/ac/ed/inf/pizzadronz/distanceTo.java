@@ -11,19 +11,6 @@ public class distanceTo {
         this.position2 = position2;
     }
 
-    public LongLat getLocation1() {
-        return position1;
-
-    }
-    public LongLat getPosition2() {
-        return position2;
-    }
-    public void setLocation1(LongLat location1) {
-        this.position1 = location1;
-    }
-    public void setPosition2(LongLat position2) {
-        this.position2 = position2;
-    }
 
     public double calculateDistanceTo() {
         if (position1 == null || position2 == null) {
