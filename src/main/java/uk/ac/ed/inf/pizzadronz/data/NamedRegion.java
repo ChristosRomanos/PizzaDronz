@@ -1,11 +1,13 @@
 package uk.ac.ed.inf.pizzadronz.data;
 
-public record NamedRegion(String name,LongLat [] vertices) {
-    public String getName() {
-        return name;
+import java.util.List;
+
+
+public record NamedRegion(String name, List<LngLat>  vertices) {
+    public NamedRegion {
+        if (name.isEmpty() || vertices==null) {
+            throw new IllegalArgumentException();
+        }
     }
 
-    public LongLat[] getVertices() {
-        return vertices;
-    }
 }

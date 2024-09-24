@@ -1,5 +1,17 @@
 package uk.ac.ed.inf.pizzadronz.constants;
 
+
 public final class SystemConstants {
-        public final double IS_CLOSE_THRESHOLD = 0.00015;
+
+        /**
+         * the distance a drone can move in 1 iteration
+         */
+        public static final double DRONE_MOVE_DISTANCE = 0.00015;
+
+        /**
+         * the distance which is considered "close"
+         */
+        public static final double DRONE_IS_CLOSE_DISTANCE = 0.00015;
+
+
 }

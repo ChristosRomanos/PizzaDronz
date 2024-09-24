@@ -1,12 +1,12 @@
 package uk.ac.ed.inf.pizzadronz;
 
-import uk.ac.ed.inf.pizzadronz.data.LongLat;
+import uk.ac.ed.inf.pizzadronz.data.LngLat;
 
 public class distanceTo {
-    private final LongLat position1;
-    private final LongLat position2;
+    private final LngLat position1;
+    private final LngLat position2;
 
-    public distanceTo(LongLat position1, LongLat position2) {
+    public distanceTo(LngLat position1, LngLat position2) {
         this.position1 = position1;
         this.position2 = position2;
     }
