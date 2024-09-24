@@ -1,6 +1,5 @@
 package uk.ac.ed.inf.pizzadronz;
 
-import uk.ac.ed.inf.pizzadronz.data.LongLat;
 
 public class isInRegion {
     private PositionRegion positionRegion;
