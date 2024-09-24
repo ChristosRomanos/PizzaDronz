@@ -35,7 +35,7 @@ public class isInRegion {
     public boolean isInside(){
         int i;
         int j;
-        boolean result = false;
+        boolean inside = false;
 
         for (i = 0, j = regionSize - 1; i < regionSize; j = i++) {
             double positionLng = positionRegion.getPosition().lng();
@@ -47,10 +47,10 @@ public class isInRegion {
             if ((vertice1Lat > positionLat) != (vertice2Lat > positionLat) &&
                     (positionLng < vertice1Lng+
                             (vertice2Lng - vertice1Lng) * (positionLat - vertice1Lat) / (vertice2Lat -vertice1Lat) )) {
-                result = !result;
+                inside = !inside;
             }
         }
-        return result;
+        return inside;
     }
 
 }
