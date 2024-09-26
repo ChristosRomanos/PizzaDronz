@@ -14,4 +14,5 @@ public final class SystemConstants {
         public static final double DRONE_IS_CLOSE_DISTANCE = 0.00015;
 
 
+        public static final String STUDENT_ID = "s2149970";
 }

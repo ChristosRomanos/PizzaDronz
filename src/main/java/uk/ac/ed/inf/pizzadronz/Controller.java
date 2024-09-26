@@ -1,72 +1,54 @@
 package uk.ac.ed.inf.pizzadronz;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import uk.ac.ed.inf.pizzadronz.RequestBodies.PositionAnglePair;
+import uk.ac.ed.inf.pizzadronz.RequestBodies.PositionPair;
+import uk.ac.ed.inf.pizzadronz.RequestBodies.PositionRegionPair;
+import uk.ac.ed.inf.pizzadronz.data.LngLat;
 import org.springframework.web.bind.annotation.RestController;
 import uk.ac.ed.inf.pizzadronz.constants.SystemConstants;
-import uk.ac.ed.inf.pizzadronz.data.LngLat;
-import uk.ac.ed.inf.pizzadronz.data.PositionRegion;
 import uk.ac.ed.inf.pizzadronz.interfaces.LngLatHandling;
+import uk.ac.ed.inf.pizzadronz.handlers.LngLatHandler;
+import javax.validation.Valid;
 
 @RestController
 public class Controller {
+    LngLatHandling lnglatHandler = new LngLatHandler();
 
     @PostMapping("/uuid")
     public String uuid() {
-        return "s2149970";
+        return SystemConstants.STUDENT_ID;
     }
 
     @PostMapping("/distanceTo")
-    public ResponseEntity<String> distanceTo(@RequestBody distanceTo locations ) {
-        double distance=locations.calculateDistanceTo();
-        if (distance>0){
-            return ResponseEntity.ok("Distance is "+distance);
-        }
-        else{
+    public ResponseEntity<Double> distanceTo (@Valid @RequestBody PositionPair locations )  {
+        double distance= lnglatHandler.distanceTo(locations.position1(),locations.position2());
+            return ResponseEntity.ok(distance);
+    }
 
-            return ResponseEntity.badRequest().body("Not valid input");
-        }
-    }
     @PostMapping("/isCloseTo")
-    public ResponseEntity<String> isCloseTo(@RequestBody distanceTo locations) {
-        isCloseTo close = new isCloseTo(locations.calculateDistanceTo(), SystemConstants.DRONE_IS_CLOSE_DISTANCE);
-        if (close.isClose()==-1){
-            return ResponseEntity.badRequest().body("Not valid input");
-        }
-        else{
-            if (close.isClose()==1){
-                return ResponseEntity.ok("True");
-            }
-            else{
-                return ResponseEntity.ok("False");
-            }
-        }
+    public boolean isCloseTo(@Valid @RequestBody PositionPair locations) {
+        return(lnglatHandler.isCloseTo(locations.position1(),locations.position2()));
     }
+
 
     @PostMapping("nextPosition")
-    public ResponseEntity<LngLat> nextPosition(@RequestBody NextPosition nextPosition) {
-        try{
-            return ResponseEntity.ok(nextPosition.calculateNextPosition());
-        }catch (Exception e){
-            return ResponseEntity.badRequest().body(null);
-        }
+    public ResponseEntity<LngLat> nextPosition(@Valid @RequestBody PositionAnglePair nextPosition) {
+        return ResponseEntity.ok(lnglatHandler.nextPosition(nextPosition.start(),nextPosition.angle()));
     }
 
     @PostMapping("/isInRegion")
-    public ResponseEntity<String> isInRegion(@RequestBody PositionRegion region) {
-        try {
-            isInRegion isInRegion = new isInRegion(region);
-            if (!isInRegion.validRegion()) {
-                return ResponseEntity.badRequest().body("Not valid region");
-            }
-            if ((isInRegion.isInside())) {
-                return ResponseEntity.ok("True");
-            } else {
-                return ResponseEntity.ok("False");
-            }
-        }catch (Exception e){
-            return ResponseEntity.badRequest().body("Not valid name");
+    public ResponseEntity<Boolean> isInRegion(@Valid @RequestBody PositionRegionPair positionRegion) {
+            return ResponseEntity.ok(lnglatHandler.isInRegion(positionRegion.position(), positionRegion.region()));
+    }
+    @ControllerAdvice
+    public static class ExceptionHandler {
+        @org.springframework.web.bind.annotation.ExceptionHandler(Exception.class)
+        public ResponseEntity<String> handleException(Exception e) {
+            return ResponseEntity.badRequest().build();
         }
     }
 }
