@@ -57,36 +57,51 @@ public class LngLatHandler implements LngLatHandling {
         }
         int i;
         int j;
-        for (i = 1, j=0; i < regionSize-1; j = i++) {
+        for (i = 1, j=0; i < regionSize; j = i++) {
+            int k;
+            if (i==regionSize-1){
+                k=0;
+            }
+            else {
+                k=i+1;
+            }
             double vertice1Lng = region.vertices().get(i).lng();
             double vertice1Lat = region.vertices().get(i).lat();
             double vertice2Lng = region.vertices().get(j).lng();
             double vertice2Lat = region.vertices().get(j).lat();
-            double vertice3Lng = region.vertices().get(i + 1).lng();
-            double vertice3Lat = region.vertices().get(i + 1).lat();
-            if (((vertice3Lat==vertice1Lat)&&(vertice3Lng==vertice1Lng))||
-                    ((vertice3Lat==vertice2Lat)&&(vertice3Lng==vertice2Lng))||
-                    Math.abs((vertice3Lat - vertice1Lat) / (vertice3Lng - vertice1Lng)) ==
-                            Math.abs((vertice3Lat - vertice2Lat) / (vertice3Lng - vertice2Lng))){
-
+            double vertice3Lng = region.vertices().get(k).lng();
+            double vertice3Lat = region.vertices().get(k).lat();
+            if((vertice1Lng==vertice2Lng && vertice1Lat==vertice2Lat)||
+                    (vertice1Lng==vertice3Lng && vertice1Lat==vertice3Lat)){
                 region.vertices().remove(i);
                 regionSize = regionSize - 1;
-                i=j;
+                i = j;
+            }
+            else if (vertice3Lng<vertice1Lng && vertice1Lng<vertice2Lng||
+                    vertice3Lng>vertice1Lng && vertice1Lng>vertice2Lng) {
+                if ((vertice3Lat - vertice1Lat) / (vertice3Lng - vertice1Lng) ==
+                        (vertice3Lat - vertice2Lat) / (vertice3Lng - vertice2Lng)) {
+                    region.vertices().remove(i);
+                    regionSize = regionSize - 1;
+                    i = j;
+                } else if ((vertice3Lat - vertice1Lat) / (vertice3Lng - vertice1Lng) ==
+                        -(vertice3Lat - vertice2Lat) / (vertice3Lng - vertice2Lng)) {
+                    region.vertices().remove(i);
+                    regionSize = regionSize - 1;
+                    i = j;
+                }
             }
         }
-        if (regionSize<3){
-            return false;
-        }
-        return true;
+        return regionSize >= 3;
     }
 
     @Override
     public LngLat nextPosition(@NotNull LngLat start,@NotNull Double angle) {
-        if (angle!=999 && (angle%22.5)!=0){
+        if (angle!=SystemConstants.DRONE_HOVERING_ANGLE && (angle% SystemConstants.DRONE_ANGLE_MULTIPLIER)!=0){
             throw new RuntimeException();
         }
-        double lat=start.lat()+Math.cos(Math.toRadians(angle))* SystemConstants.DRONE_MOVE_DISTANCE;
-        double lng=start.lng()+Math.sin(Math.toRadians(angle))* SystemConstants.DRONE_MOVE_DISTANCE;
+        double lng=start.lng()+Math.cos(Math.toRadians(angle))* SystemConstants.DRONE_MOVE_DISTANCE;
+        double lat=start.lat()+Math.sin(Math.toRadians(angle))* SystemConstants.DRONE_MOVE_DISTANCE;
         return new LngLat(lng,lat);
     }
 
