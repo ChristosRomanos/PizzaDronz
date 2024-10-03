@@ -104,7 +104,5 @@ public class LngLatHandler implements LngLatHandling {
         double lat=start.lat()+Math.sin(Math.toRadians(angle))* SystemConstants.DRONE_MOVE_DISTANCE;
         return new LngLat(lng,lat);
     }
-
-
 }
 
