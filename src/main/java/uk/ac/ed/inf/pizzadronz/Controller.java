@@ -48,6 +48,7 @@ public class Controller {
     public static class ExceptionHandler {
         @org.springframework.web.bind.annotation.ExceptionHandler(Exception.class)
         public ResponseEntity<String> handleException(Exception e) {
+            System.err.println(e.getMessage());
             return ResponseEntity.badRequest().build();
         }
     }
