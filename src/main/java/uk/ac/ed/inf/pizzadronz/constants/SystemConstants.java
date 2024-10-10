@@ -20,4 +20,6 @@ public final class SystemConstants {
         public static double DRONE_HOVERING_ANGLE= 999;
 
         public static double DRONE_ANGLE_MULTIPLIER=22.5;
+
+        public static double EPSILON_ERROR= 0.0000000000001;
 }

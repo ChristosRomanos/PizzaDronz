@@ -40,14 +40,15 @@ public class LngLatHandler implements LngLatHandling {
                 vertice1Lat = region.vertices().get(i).lat();
                 vertice2Lng = region.vertices().get(j).lng();
                 vertice2Lat = region.vertices().get(j).lat();
-                if ((positionLat==vertice1Lat && positionLng==vertice1Lng)||
-                        (positionLng>Double.min(vertice1Lng,vertice2Lng)&&positionLng<Double.max(vertice1Lng,vertice2Lng)&&
-                        (Math.abs((positionLat - vertice1Lat) / (positionLng - vertice1Lng)) ==
-                                Math.abs((positionLat - vertice2Lat) / (positionLng - vertice2Lng))))){
+                if ((positionLat==vertice2Lat && positionLng==vertice2Lng)||
+                        (vertice1Lat==vertice2Lat && vertice1Lat==positionLat &&
+                                (positionLat-vertice2Lat)<(vertice1Lat-vertice2Lat)+SystemConstants.EPSILON_ERROR)||
+                        Math.abs((positionLat-vertice2Lat)/(positionLng-vertice2Lng)-
+                                (vertice1Lat-vertice2Lat)/(vertice1Lng-vertice2Lng))<SystemConstants.EPSILON_ERROR){
                     return true;
                 }
                 if ((vertice1Lat > positionLat) != (vertice2Lat > positionLat) &&
-                        (positionLng < vertice1Lng+
+                        (positionLng-SystemConstants.EPSILON_ERROR < vertice1Lng+
                                 (vertice2Lng - vertice1Lng) * (positionLat - vertice1Lat) / (vertice2Lat -vertice1Lat) )) {
                     inside = !inside;
                 }
@@ -55,6 +56,7 @@ public class LngLatHandler implements LngLatHandling {
             return inside;
         }
         throw new RuntimeException("Invalid region");
+
     }
 
 
@@ -62,6 +64,7 @@ public class LngLatHandler implements LngLatHandling {
         int regionSize=region.vertices().size();
         if (regionSize < 4) {
             return false;
+
         }
         if (!Objects.equals(region.vertices().get(0),region.vertices().get(regionSize-1))){
             return false;
@@ -93,8 +96,8 @@ public class LngLatHandler implements LngLatHandling {
 
     @Override
     public LngLat nextPosition(@NotNull LngLat start,@NotNull Double angle) {
-        if (angle<0||angle>360||
-                (angle!=SystemConstants.DRONE_HOVERING_ANGLE && (angle% SystemConstants.DRONE_ANGLE_MULTIPLIER)!=0)){
+        if ((angle<0||angle>360)&&(angle!=SystemConstants.DRONE_HOVERING_ANGLE )){;
+
             throw new RuntimeException("Invalid angle");
         }
         double lng=start.lng()+Math.cos(Math.toRadians(angle))* SystemConstants.DRONE_MOVE_DISTANCE;
