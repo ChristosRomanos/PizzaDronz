@@ -1,7 +1,7 @@
-FROM openjdk:18-jdk-slim
+FROM --platform=linux/amd64 openjdk:19-jdk-slim
 
 # Set the author label
-LABEL authors="cmrom"
+LABEL authors="Christos Romanos"
 
 # Add a volume pointing to /tmp
 WORKDIR /app

@@ -31,25 +31,27 @@ public class LngLatHandler implements LngLatHandling {
             boolean inside = false;
             double positionLng = position.lng();
             double positionLat = position.lat();
-            double vertice1Lng;
-            double vertice1Lat;
-            double vertice2Lng;
-            double vertice2Lat;
+            double vertex1Lng;
+            double vertex1Lat;
+            double vertex2Lng;
+            double vertex2Lat;
             for (i = 1, j = 0; i < regionSize; j = i++) {
-                vertice1Lng = region.vertices().get(i).lng();
-                vertice1Lat = region.vertices().get(i).lat();
-                vertice2Lng = region.vertices().get(j).lng();
-                vertice2Lat = region.vertices().get(j).lat();
-                if ((positionLat==vertice2Lat && positionLng==vertice2Lng)||
-                        (vertice1Lat==vertice2Lat && vertice1Lat==positionLat &&
-                                (positionLat-vertice2Lat)<(vertice1Lat-vertice2Lat)+SystemConstants.EPSILON_ERROR)||
-                        Math.abs((positionLat-vertice2Lat)/(positionLng-vertice2Lng)-
-                                (vertice1Lat-vertice2Lat)/(vertice1Lng-vertice2Lng))<SystemConstants.EPSILON_ERROR){
+                vertex1Lng = region.vertices().get(i).lng();
+                vertex1Lat = region.vertices().get(i).lat();
+                vertex2Lng = region.vertices().get(j).lng();
+                vertex2Lat = region.vertices().get(j).lat();
+                if ((
+                        ((vertex1Lng==vertex2Lng && vertex1Lng==positionLng)&&
+                        (Math.abs((positionLat-vertex1Lat))<=Math.abs(vertex2Lat-vertex1Lat)+SystemConstants.EPSILON_ERROR))||
+                        (Math.abs((positionLat-vertex2Lat)/(positionLng-vertex2Lng)-
+                                (vertex1Lat-vertex2Lat)/(vertex1Lng-vertex2Lng))<=SystemConstants.EPSILON_ERROR)&&
+                        (Math.abs((positionLng-vertex2Lng))<=Math.abs(vertex1Lng-vertex2Lat)+SystemConstants.EPSILON_ERROR)&&
+                            (Math.abs((positionLng-vertex1Lng))<=Math.abs(vertex2Lng-vertex1Lng)+SystemConstants.EPSILON_ERROR))){
                     return true;
                 }
-                if ((vertice1Lat > positionLat) != (vertice2Lat > positionLat) &&
-                        (positionLng-SystemConstants.EPSILON_ERROR < vertice1Lng+
-                                (vertice2Lng - vertice1Lng) * (positionLat - vertice1Lat) / (vertice2Lat -vertice1Lat) )) {
+                if ((vertex1Lat > positionLat) != (vertex2Lat > positionLat) &&
+                        (positionLng-SystemConstants.EPSILON_ERROR < vertex1Lng+
+                                (vertex2Lng - vertex1Lng) * (positionLat - vertex1Lat) / (vertex2Lat -vertex1Lat) )) {
                     inside = !inside;
                 }
             }
@@ -59,7 +61,7 @@ public class LngLatHandler implements LngLatHandling {
 
     }
 
-
+    @Override
     public boolean validRegion(@NotNull NamedRegion region){
         int regionSize=region.vertices().size();
         if (regionSize < 4) {
@@ -73,19 +75,19 @@ public class LngLatHandler implements LngLatHandling {
         int j;
         for (i = 1, j=0; i < regionSize-1; j = i++) {
             int k = i + 1;
-            double vertice1Lng = region.vertices().get(i).lng();
-            double vertice1Lat = region.vertices().get(i).lat();
-            double vertice2Lng = region.vertices().get(j).lng();
-            double vertice2Lat = region.vertices().get(j).lat();
-            double vertice3Lng = region.vertices().get(k).lng();
-            double vertice3Lat = region.vertices().get(k).lat();
-            if ((vertice1Lng == vertice2Lng && vertice1Lat == vertice2Lat) ||
-                    (vertice1Lng == vertice3Lng && vertice1Lat == vertice3Lat)) {
+            double vertex1Lng = region.vertices().get(i).lng();
+            double vertex1Lat = region.vertices().get(i).lat();
+            double vertex2Lng = region.vertices().get(j).lng();
+            double vertex2Lat = region.vertices().get(j).lat();
+            double vertex3Lng = region.vertices().get(k).lng();
+            double vertex3Lat = region.vertices().get(k).lat();
+            if ((vertex1Lng == vertex2Lng && vertex1Lat == vertex2Lat) ||
+                    (vertex1Lng == vertex3Lng && vertex1Lat == vertex3Lat)) {
                 region.vertices().remove(i);
                 regionSize = regionSize - 1;
                 i = j;
-            } else if ((vertice3Lat - vertice1Lat) / (vertice3Lng - vertice1Lng) ==
-                    (vertice3Lat - vertice2Lat) / (vertice3Lng - vertice2Lng)) {
+            } else if ((vertex3Lat - vertex1Lat) / (vertex3Lng - vertex1Lng) ==
+                    (vertex3Lat - vertex2Lat) / (vertex3Lng - vertex2Lng)) {
                 region.vertices().remove(i);
                 regionSize = regionSize - 1;
                 i = j;
@@ -96,13 +98,20 @@ public class LngLatHandler implements LngLatHandling {
 
     @Override
     public LngLat nextPosition(@NotNull LngLat start,@NotNull Double angle) {
-        if ((angle<0||angle>360)&&(angle!=SystemConstants.DRONE_HOVERING_ANGLE )){;
+        if (!validAngle(angle)){;
 
             throw new RuntimeException("Invalid angle");
+        }
+        if (angle==SystemConstants.DRONE_HOVERING_ANGLE){
+            return start;
         }
         double lng=start.lng()+Math.cos(Math.toRadians(angle))* SystemConstants.DRONE_MOVE_DISTANCE;
         double lat=start.lat()+Math.sin(Math.toRadians(angle))* SystemConstants.DRONE_MOVE_DISTANCE;
         return new LngLat(lng,lat);
+    }
+    @Override
+    public boolean validAngle(double angle) {
+        return (angle==SystemConstants.DRONE_HOVERING_ANGLE || angle>=0&&angle<=360);
     }
 }
 

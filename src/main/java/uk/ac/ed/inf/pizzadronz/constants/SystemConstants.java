@@ -17,9 +17,9 @@ public final class SystemConstants {
         public static final String STUDENT_ID = "s2149970";
 
 
-        public static double DRONE_HOVERING_ANGLE= 999;
+        public static final double DRONE_HOVERING_ANGLE= 999;
 
-        public static double DRONE_ANGLE_MULTIPLIER=22.5;
+        public static final double DRONE_ANGLE_MULTIPLIER=22.5;
 
-        public static double EPSILON_ERROR= 0.0000000000001;
+        public static final double EPSILON_ERROR= Math.pow(10,-12);
 }

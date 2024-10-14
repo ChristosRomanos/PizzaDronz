@@ -36,4 +36,8 @@ public interface LngLatHandling {
         * @param angle is the angle to use in degrees
         * @return the new position after the angle is used
         */LngLat nextPosition(LngLat startPosition, Double angle);
+
+    boolean validRegion(NamedRegion region);
+
+    boolean validAngle(double droneHoveringAngle);
 }
