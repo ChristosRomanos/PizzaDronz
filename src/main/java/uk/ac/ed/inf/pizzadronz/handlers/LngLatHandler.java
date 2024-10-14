@@ -40,10 +40,12 @@ public class LngLatHandler implements LngLatHandling {
                 vertex1Lat = region.vertices().get(i).lat();
                 vertex2Lng = region.vertices().get(j).lng();
                 vertex2Lat = region.vertices().get(j).lat();
-                if ((
+                if ((positionLng==vertex2Lng&& positionLat==vertex2Lat)||
+
                         ((vertex1Lng==vertex2Lng && vertex1Lng==positionLng)&&
-                        (Math.abs((positionLat-vertex1Lat))<=Math.abs(vertex2Lat-vertex1Lat)+SystemConstants.EPSILON_ERROR))||
-                        (Math.abs((positionLat-vertex2Lat)/(positionLng-vertex2Lng)-
+                        (Math.abs((positionLat-vertex1Lat))<=Math.abs(vertex2Lat-vertex1Lat)+SystemConstants.EPSILON_ERROR)&&
+                                (Math.abs((positionLat-vertex2Lat))<=Math.abs(vertex2Lat-vertex1Lat)+SystemConstants.EPSILON_ERROR))||
+                        ((Math.abs((positionLat-vertex2Lat)/(positionLng-vertex2Lng)-
                                 (vertex1Lat-vertex2Lat)/(vertex1Lng-vertex2Lng))<=SystemConstants.EPSILON_ERROR)&&
                         (Math.abs((positionLng-vertex2Lng))<=Math.abs(vertex1Lng-vertex2Lat)+SystemConstants.EPSILON_ERROR)&&
                             (Math.abs((positionLng-vertex1Lng))<=Math.abs(vertex2Lng-vertex1Lng)+SystemConstants.EPSILON_ERROR))){
