@@ -1,14 +1,16 @@
-package uk.ac.ed.inf.pizzadronz.handlers;
+package uk.ac.ed.inf.pizzadronz.Services;
 
+import org.springframework.stereotype.Service;
 import uk.ac.ed.inf.pizzadronz.constants.SystemConstants;
 import uk.ac.ed.inf.pizzadronz.data.LngLat;
 import uk.ac.ed.inf.pizzadronz.data.NamedRegion;
-import uk.ac.ed.inf.pizzadronz.interfaces.LngLatHandling;
+import uk.ac.ed.inf.pizzadronz.ServiceInterface.LngLatHandling;
 
 import javax.validation.constraints.NotNull;
 import java.util.Objects;
 
-public class LngLatHandler implements LngLatHandling {
+@Service
+public class LngLatService implements LngLatHandling {
 
     @Override
     public double distanceTo (@NotNull LngLat position1,@NotNull LngLat position2){
@@ -68,7 +70,6 @@ public class LngLatHandler implements LngLatHandling {
         int regionSize=region.vertices().size();
         if (regionSize < 4) {
             return false;
-
         }
         if (!Objects.equals(region.vertices().get(0),region.vertices().get(regionSize-1))){
             return false;
@@ -100,7 +101,7 @@ public class LngLatHandler implements LngLatHandling {
 
     @Override
     public LngLat nextPosition(@NotNull LngLat start,@NotNull Double angle) {
-        if (!validAngle(angle)){;
+        if (!validAngle(angle)){
 
             throw new RuntimeException("Invalid angle");
         }
@@ -112,8 +113,8 @@ public class LngLatHandler implements LngLatHandling {
         return new LngLat(lng,lat);
     }
     @Override
-    public boolean validAngle(double angle) {
-        return (angle==SystemConstants.DRONE_HOVERING_ANGLE || angle>=0&&angle<=360);
+    public boolean validAngle(double angle){
+        return (angle==SystemConstants.DRONE_HOVERING_ANGLE || angle>=0&&angle<360);
     }
 }
 

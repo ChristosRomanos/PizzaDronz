@@ -2,7 +2,16 @@ package uk.ac.ed.inf.pizzadronz.RequestBodies;
 
 import uk.ac.ed.inf.pizzadronz.data.LngLat;
 
+import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 
-public record PositionPair(@NotNull LngLat position1 , @NotNull LngLat position2) {
+public record PositionPair(LngLat position1,LngLat position2) {
+    public PositionPair {
+        if (position1 == null ) {
+            throw new RuntimeException("Position1 is null");
+        }
+        if (position2 == null ) {
+            throw new RuntimeException("Position2 is null");
+        }
+    }
 }

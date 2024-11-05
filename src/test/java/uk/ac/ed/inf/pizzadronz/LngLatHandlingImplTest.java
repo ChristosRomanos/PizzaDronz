@@ -4,8 +4,8 @@ import org.junit.jupiter.api.*;
 import uk.ac.ed.inf.pizzadronz.constants.SystemConstants;
 import uk.ac.ed.inf.pizzadronz.data.LngLat;
 import uk.ac.ed.inf.pizzadronz.data.NamedRegion;
-import uk.ac.ed.inf.pizzadronz.handlers.LngLatHandler;
-import uk.ac.ed.inf.pizzadronz.interfaces.LngLatHandling;
+import uk.ac.ed.inf.pizzadronz.Services.LngLatService;
+import uk.ac.ed.inf.pizzadronz.ServiceInterface.LngLatHandling;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -21,7 +21,7 @@ public class LngLatHandlingImplTest {
 
     @BeforeAll
     public static void beforeAll() {
-        lngLatHandler = new LngLatHandler();
+        lngLatHandler = new LngLatService();
     }
 
 
@@ -277,6 +277,35 @@ public class LngLatHandlingImplTest {
                         assertTrue(inRegion);
                     })
             );
+        }
+
+
+        @Test
+        public void testPointInPolygonIntersectionOnEdge() {
+            NamedRegion region = new NamedRegion("na", List.of(new LngLat[]{
+                    new LngLat(1.0, 2.0),
+                    new LngLat(0.0, 1.0),
+                    new LngLat(3.0, 0.0),
+                    new LngLat(3.0, 1.5),
+                    new LngLat(1.0, 2.0),
+            }));
+            LngLat position = new LngLat(1.25,1.5);
+            boolean inRegion = lngLatHandler.isInRegion(position, region);
+            assertTrue(inRegion);
+        }
+
+        @Test
+        public void testPointOutsidePolygonIntersectionOnEdge() {
+            NamedRegion region = new NamedRegion("na", List.of(new LngLat[]{
+                    new LngLat(1.0, 2.0),
+                    new LngLat(0.0, 1.0),
+                    new LngLat(3.0, 0.0),
+                    new LngLat(3.0, 1.5),
+                    new LngLat(1.0, 2.0),
+            }));
+            LngLat position = new LngLat(0.49,1.5);
+            boolean inRegion = lngLatHandler.isInRegion(position, region);
+            assertFalse(inRegion);
         }
 
     }
