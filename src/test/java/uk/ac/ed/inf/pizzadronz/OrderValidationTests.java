@@ -37,10 +37,16 @@ public class OrderValidationTests {
     public void testOrderValidation(Order order) {
         OrderValidationCode expectedCode = order.getOrderValidationCode();
         OrderStatus expectedStatus = order.getOrderStatus();
+        order.setOrderStatus(null);
+        order.setOrderValidationCode(null);
         Order validatedOrder = orderValidationService.validateOrder(order, restaurants);
 
         assertSame(expectedCode, validatedOrder.getOrderValidationCode(), "OrderValidationCode mismatch for order: " + order.getOrderNo());
         assertSame(expectedStatus, validatedOrder.getOrderStatus(), "OrderStatus mismatch for order: " + order.getOrderNo());
+        System.out.println("Actual OrderStatus: " + validatedOrder.getOrderStatus());
+        System.out.println("Actual OrderValidationCode: " + validatedOrder.getOrderValidationCode());
+        System.out.println("Expected OrderStatus: " + expectedStatus);
+        System.out.println("Expected OrderValidationCode: " + expectedCode);
     }
 }
 
