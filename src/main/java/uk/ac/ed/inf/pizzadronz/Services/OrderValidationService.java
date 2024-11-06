@@ -1,92 +1,138 @@
 package uk.ac.ed.inf.pizzadronz.Services;
 
+import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import uk.ac.ed.inf.pizzadronz.ServiceInterface.OrderValidation;
+import uk.ac.ed.inf.pizzadronz.constants.OrderStatus;
 import uk.ac.ed.inf.pizzadronz.constants.OrderValidationCode;
 import uk.ac.ed.inf.pizzadronz.constants.SystemConstants;
-import uk.ac.ed.inf.pizzadronz.data.CreditCardInformation;
-import uk.ac.ed.inf.pizzadronz.data.Order;
-import uk.ac.ed.inf.pizzadronz.data.Pizza;
-import uk.ac.ed.inf.pizzadronz.data.Restaurant;
+import uk.ac.ed.inf.pizzadronz.data.*;
 
 import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.temporal.ChronoField;
 import java.util.Calendar;
-import java.util.Date;
 
 @Service
-public class OrderValidationService {
-    private final RestTemplate restTemplate = new RestTemplate();
-    private Restaurant[] restaurants;
+public class OrderValidationService implements OrderValidation {
     private Restaurant restaurant;
-    private Date date;
-    public OrderValidationService() {
-        restaurant=null;
+    private LocalDate date;
 
+
+    public Order validateOrder(@NotNull Order order, Restaurant[] definedRestaurants) {
+        date= LocalDate.now();
+        if (definedRestaurants==null || definedRestaurants.length==0){
+            throw new IllegalArgumentException("No restaurants defined");
+        }
+
+        OrderValidationCode validationCode=checkOrderDate(order.getOrderDate());
+        if (validationCode != OrderValidationCode.NO_ERROR) {
+            if(validationCode==OrderValidationCode.UNDEFINED){
+                order.setOrderStatus(OrderStatus.UNDEFINED);
+            }else {
+                order.setOrderStatus(OrderStatus.INVALID);
+            }
+            order.setOrderValidationCode(validationCode);
+            return order;
+        }
+
+        validationCode=checkCreditCardInformation(order.getCreditCardInformation());
+        if (validationCode != OrderValidationCode.NO_ERROR) {
+            if (validationCode==OrderValidationCode.UNDEFINED){
+                order.setOrderStatus(OrderStatus.UNDEFINED);
+            }else {
+                order.setOrderStatus(OrderStatus.INVALID);
+            }
+            order.setOrderValidationCode(validationCode);
+            return order;
+        }
+        if(order.getPizzasInOrder().length==0){
+            validationCode=OrderValidationCode.EMPTY_ORDER;
+        }else {
+            validationCode = checkIfRestaurantExists(order.getPizzasInOrder()[0], definedRestaurants);
+        }
+
+        if (validationCode != OrderValidationCode.NO_ERROR) {
+            if (validationCode==OrderValidationCode.UNDEFINED){
+                order.setOrderStatus(OrderStatus.UNDEFINED);
+            }else {
+                order.setOrderStatus(OrderStatus.INVALID);
+            }
+            order.setOrderValidationCode(validationCode);
+            return order;
+        }
+
+        validationCode=checkIfRestaurantIsOpen(restaurant,order.getOrderDate());
+        if (validationCode != OrderValidationCode.NO_ERROR) {
+            if (validationCode==OrderValidationCode.UNDEFINED){
+                order.setOrderStatus(OrderStatus.UNDEFINED);
+            }else {
+                order.setOrderStatus(OrderStatus.INVALID);
+            }
+            order.setOrderValidationCode(validationCode);
+            return order;
+        }
+
+        validationCode=checkPriceTotalInPenceAndPizzas(order.getPriceTotalInPence(), order.getPizzasInOrder(),definedRestaurants);
+        if (validationCode != OrderValidationCode.NO_ERROR) {
+            if (validationCode==OrderValidationCode.UNDEFINED){
+                order.setOrderStatus(OrderStatus.UNDEFINED);
+            }else {
+                order.setOrderStatus(OrderStatus.INVALID);
+            }
+            order.setOrderValidationCode(validationCode);
+            return order;
+        }
+
+        order.setOrderStatus(OrderStatus.VALID);
+        order.setOrderValidationCode(OrderValidationCode.NO_ERROR);
+        return order;
     }
 
-    public OrderValidationCode checkOrder(Order order) {
-        date=new Date();
-        if (checkOrderDate(order.orderDate()) != OrderValidationCode.NO_ERROR) {
-            return checkOrderDate(order.orderDate());
-        }
-        retrieveRestaurants();
-        if (checkPriceTotalInPenceAndPizzas(order.priceTotalInPence(), order.pizzasInOrder()) != OrderValidationCode.NO_ERROR) {
-            return checkPriceTotalInPenceAndPizzas(order.priceTotalInPence(), order.pizzasInOrder());
-        }
-
-        if (checkCreditCardInformation(order.creditCardInformation()) != OrderValidationCode.NO_ERROR) {
-            return checkCreditCardInformation(order.creditCardInformation());
-        }
-        return OrderValidationCode.NO_ERROR;
-    }
-
-    public OrderValidationCode checkOrderDate(Date orderDate) {
-        if (orderDate.before(date)) {
+    public OrderValidationCode checkOrderDate(@NotNull LocalDate orderDate) {
+        if (orderDate.isBefore(date)) {
             return OrderValidationCode.UNDEFINED;
         }
         return OrderValidationCode.NO_ERROR;
     }
 
-    public OrderValidationCode checkPriceTotalInPenceAndPizzas(Integer priceTotalInPence, Pizza[] pizzasInOrder) {
-        if (priceTotalInPence < 0) {
+    public OrderValidationCode checkIfRestaurantIsOpen(@NotNull Restaurant restaurant, LocalDate date) {
+        for (DayOfWeek day : restaurant.openingDays()) {
+            if (date.get(ChronoField.DAY_OF_WEEK)==day.getValue()) {
+                return OrderValidationCode.NO_ERROR;
+            }
+        }
+        return OrderValidationCode.RESTAURANT_CLOSED;
+    }
+
+    public OrderValidationCode checkIfRestaurantExists(@NotNull Pizza pizza, Restaurant[] definedRestaurants) {
+        int colonIndex=pizza.name().indexOf(":");
+        if (colonIndex==-1){
+            return OrderValidationCode.PIZZA_NOT_DEFINED;
+        }
+        int restaurantNo=Integer.parseInt(pizza.name().substring(1,colonIndex));
+        if (restaurantNo<1 || restaurantNo>definedRestaurants.length){
+            return OrderValidationCode.PIZZA_NOT_DEFINED;
+        }
+        restaurant=definedRestaurants[restaurantNo-1];
+        return OrderValidationCode.NO_ERROR;
+    }
+
+    public OrderValidationCode checkPriceTotalInPenceAndPizzas(Integer priceTotalInPence, Pizza[] pizzasInOrder,Restaurant[] definedRestaurants) {
+        if (priceTotalInPence < SystemConstants.DELIVERY_FEE) {
             return OrderValidationCode.TOTAL_INCORRECT;
         }
-        if (pizzasInOrder.length < 1) {
-            return OrderValidationCode.EMPTY_ORDER;
-        } else if (pizzasInOrder.length > SystemConstants.MAX_PIZZA_COUNT) {
+        if (pizzasInOrder.length > SystemConstants.MAX_PIZZA_COUNT) {
             return OrderValidationCode.MAX_PIZZA_COUNT_EXCEEDED;
         } else {
-            int colonIndex=pizzasInOrder[0].name().indexOf(":");
-            if (colonIndex==-1){
-                return OrderValidationCode.PIZZA_NOT_DEFINED;
-            }
-            String restaurantName=pizzasInOrder[0].name().substring(0,colonIndex);
-            for (Restaurant restaurant : restaurants) {
-                if (restaurant.name().equals(restaurantName)) {
-                    this.restaurant = restaurant;
-                    break;
-                }
-            }
-            if (restaurant == null) {
-                return OrderValidationCode.PIZZA_NOT_DEFINED;
-            }
-            boolean isOpen=false;
-            for (DayOfWeek day : restaurant.openingDays()) {
-                if (date.toInstant().get(ChronoField.DAY_OF_WEEK)==day.getValue()) {
-                    isOpen=true;
-                    break;
-                }
-            }
-            if (!isOpen) {
-                return OrderValidationCode.RESTAURANT_CLOSED;
-            }
             int sum = SystemConstants.DELIVERY_FEE;
             for (Pizza pizza : pizzasInOrder) {
-                if (checkPizza(restaurant,pizza) == OrderValidationCode.NO_ERROR) {
+                OrderValidationCode valid=checkPizza(restaurant,pizza,definedRestaurants);
+                if (valid == OrderValidationCode.NO_ERROR) {
                     sum += pizza.priceInPence();
                 } else {
-                    return pizza.checkPizza();
+                    return valid;
                 }
             }
             if (sum != priceTotalInPence) {
@@ -96,12 +142,12 @@ public class OrderValidationService {
         }
     }
 
-    public OrderValidationCode checkCreditCardInformation(CreditCardInformation creditCardInformation) {
+    public OrderValidationCode checkCreditCardInformation(@NotNull CreditCardInformation creditCardInformation) {
             // check if the card number is valid
-            if (creditCardInformation.cardNumber().length()!=16) {
+            if (creditCardInformation.creditCardNumber().length()!=16) {
                 return OrderValidationCode.CARD_NUMBER_INVALID;
             }try {
-                Long.parseLong(creditCardInformation.cardNumber());
+                Long.parseLong(creditCardInformation.creditCardNumber());
             } catch (NumberFormatException e) {
                 return OrderValidationCode.CARD_NUMBER_INVALID;
             }
@@ -118,17 +164,19 @@ public class OrderValidationService {
             }
 
             // check if the expiry date is valid
-            if (creditCardInformation.expiryDate().length()!=5 || creditCardInformation.expiryDate().charAt(2) != '/') {
+            if (creditCardInformation.creditCardExpiry().length()!=5 || creditCardInformation.creditCardExpiry().charAt(2) != '/') {
                 return OrderValidationCode.EXPIRY_DATE_INVALID;
             }
             try {
-                int month=Integer.parseInt(creditCardInformation.expiryDate().substring(0,2));
-                int year=Integer.parseInt(creditCardInformation.expiryDate().substring(3,5));
+                int month=Integer.parseInt(creditCardInformation.creditCardExpiry().substring(0,2));
+                int year=Integer.parseInt(creditCardInformation.creditCardExpiry().substring(3,5));
                 if (month<1 || month>12) {
+
                     return OrderValidationCode.EXPIRY_DATE_INVALID;
                 }
                 Calendar cal = Calendar.getInstance();
-                if(year< cal.get(Calendar.YEAR) -100){
+                if(year< cal.get(Calendar.YEAR) -2000){
+
                     return OrderValidationCode.EXPIRY_DATE_INVALID;
                 }
                 if (year==cal.get(Calendar.YEAR) -100 &&
@@ -142,21 +190,18 @@ public class OrderValidationService {
             return OrderValidationCode.NO_ERROR;
         }
 
-    public OrderValidationCode checkPizza(Restaurant restaurant,Pizza pizza) {
+    public OrderValidationCode checkPizza(Restaurant restaurant, @NotNull Pizza pizza, Restaurant[] definedRestaurants) {
         int colonIndex=pizza.name().indexOf(":");
         if (colonIndex==-1){
             return OrderValidationCode.PIZZA_NOT_DEFINED;
         }
-        String restaurantName=pizza.name().substring(0,colonIndex);
-        String pizzaName=pizza.name().substring(colonIndex+1);
-        if (!restaurant.name().equals(restaurantName)) {
-            if (restaurantName.isEmpty()) {
-                return OrderValidationCode.PIZZA_NOT_DEFINED;
-            }
+        int restaurantNumber=Integer.parseInt(pizza.name().substring(1,colonIndex));
+        if (definedRestaurants[restaurantNumber-1]!=restaurant){
             return OrderValidationCode.PIZZA_FROM_MULTIPLE_RESTAURANTS;
         }
+        restaurant=definedRestaurants[restaurantNumber-1];
         for (Pizza item : restaurant.menu()) {
-            if (item.name().equals(pizzaName)) {
+            if (item.name().equals(pizza.name())) {
                 if (!pizza.priceInPence().equals(item.priceInPence())) {
                     return OrderValidationCode.PRICE_FOR_PIZZA_INVALID;
                 }
@@ -166,7 +211,4 @@ public class OrderValidationService {
         return OrderValidationCode.PIZZA_NOT_DEFINED;
     }
 
-    public void retrieveRestaurants(){
-        restaurants=restTemplate.getForObject(SystemConstants.RESTAURANTS_URL, Restaurant[].class);
-    }
 }

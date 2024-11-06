@@ -6,8 +6,8 @@ import java.util.Calendar;
 import java.util.Date;
 
 public record CreditCardInformation(
-        String cardNumber,
-        String expiryDate,
+        String creditCardNumber,
+        String creditCardExpiry,
         String cvv
 ) {
 

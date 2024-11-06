@@ -29,5 +29,5 @@ public interface OrderValidation {
      * @return the validated order
      */
     Order validateOrder(Order orderToValidate, Restaurant[] definedRestaurants);
-}
 
+}

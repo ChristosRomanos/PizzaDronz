@@ -1,5 +1,6 @@
 package uk.ac.ed.inf.pizzadronz.ServiceInterface;
 import org.springframework.stereotype.Repository;
+import org.springframework.stereotype.Service;
 import uk.ac.ed.inf.pizzadronz.data.LngLat;
 import uk.ac.ed.inf.pizzadronz.data.NamedRegion;
 
