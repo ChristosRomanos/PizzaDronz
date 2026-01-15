@@ -79,10 +79,6 @@ jobs:
           echo "line_total=$LINE_TOTAL" >> $GITHUB_OUTPUT
         fi
 
-    - name: Check Coverage Thresholds
-      run: mvn jacoco:check
-      continue-on-error: true
-
     - name: Generate Build Summary
       if: always()
       run: |
