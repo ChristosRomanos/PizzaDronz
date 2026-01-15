@@ -74,8 +74,6 @@ public class PathFindingTests {
             List<LngLat> path;
             try {
                 path = future.get(60, TimeUnit.SECONDS); // Timeout of 60 seconds
-                System.out.println("Distance in Steps: "+lngLatHandling.distanceTo(start, destination)/SystemConstants.DRONE_MOVE_DISTANCE);
-                System.out.println("Path Steps: " + path.size());
 
             } catch (TimeoutException e) {
                 throw new AssertionError("Path calculation timed out");

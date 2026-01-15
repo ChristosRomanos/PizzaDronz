@@ -34,16 +34,58 @@ jobs:
       run: mvn clean compile -B
 
     - name: Run Tests with Coverage
-      run: mvn test jacoco:report -B
+      run: |
+        echo "::group::Running Tests"
+        mvn test jacoco:report -B
+        echo "::endgroup::"
 
-    - name: Publish Test Report
+    - name: Publish Detailed Test Report
       if: always()
       uses: dorny/test-reporter@v1
       with:
-        name: JUnit Test Results
-        path: target/surefire-reports/*.xml
+        name: '📊 JUnit Test Results'
+        path: 'target/surefire-reports/*.xml'
         reporter: java-junit
         fail-on-error: false
+        max-annotations: 50
+
+    - name: Extract Test Details
+      if: always()
+      id: test_details
+      run: |
+        echo "## 🧪 Test Execution Details" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Parse test results from XML files
+        if [ -d target/surefire-reports ]; then
+          echo "### Test Suites" >> $GITHUB_STEP_SUMMARY
+          echo "| Test Class | Tests | Failures | Errors | Time |" >> $GITHUB_STEP_SUMMARY
+          echo "|------------|-------|----------|--------|------|" >> $GITHUB_STEP_SUMMARY
+          
+          for file in target/surefire-reports/TEST-*.xml; do
+            if [ -f "$file" ]; then
+              classname=$(grep -oP 'name="\K[^"]+' "$file" | head -1)
+              tests=$(grep -oP 'tests="\K[0-9]+' "$file" | head -1)
+              failures=$(grep -oP 'failures="\K[0-9]+' "$file" | head -1)
+              errors=$(grep -oP 'errors="\K[0-9]+' "$file" | head -1)
+              time=$(grep -oP 'time="\K[0-9.]+' "$file" | head -1)
+              
+              # Format class name for display
+              shortname=$(echo "$classname" | sed 's/uk.ac.ed.inf.pizzadronz.//')
+              
+              # Determine status icon
+              if [ "$failures" = "0" ] && [ "$errors" = "0" ]; then
+                status="✅"
+              else
+                status="❌"
+              fi
+              
+              echo "| $status $shortname | $tests | $failures | $errors | ${time}s |" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+        fi
 
     - name: Extract Coverage Metrics
       id: coverage
@@ -53,20 +95,35 @@ jobs:
           TOTALS=$(tail -1 target/site/jacoco/jacoco.csv)
           IFS=',' read -ra METRICS <<< "$TOTALS"
           
-          INST_MISSED=${METRICS[3]}
-          INST_COVERED=${METRICS[4]}
-          BRANCH_MISSED=${METRICS[5]}
-          BRANCH_COVERED=${METRICS[6]}
-          LINE_MISSED=${METRICS[7]}
-          LINE_COVERED=${METRICS[8]}
+          INST_MISSED=${METRICS[3]:-0}
+          INST_COVERED=${METRICS[4]:-0}
+          BRANCH_MISSED=${METRICS[5]:-0}
+          BRANCH_COVERED=${METRICS[6]:-0}
+          LINE_MISSED=${METRICS[7]:-0}
+          LINE_COVERED=${METRICS[8]:-0}
           
           INST_TOTAL=$((INST_MISSED + INST_COVERED))
           BRANCH_TOTAL=$((BRANCH_MISSED + BRANCH_COVERED))
           LINE_TOTAL=$((LINE_MISSED + LINE_COVERED))
           
-          INST_PCT=$((INST_COVERED * 100 / INST_TOTAL))
-          BRANCH_PCT=$((BRANCH_COVERED * 100 / BRANCH_TOTAL))
-          LINE_PCT=$((LINE_COVERED * 100 / LINE_TOTAL))
+          # Calculate percentages with division by zero protection
+          if [ $INST_TOTAL -gt 0 ]; then
+            INST_PCT=$((INST_COVERED * 100 / INST_TOTAL))
+          else
+            INST_PCT=0
+          fi
+          
+          if [ $BRANCH_TOTAL -gt 0 ]; then
+            BRANCH_PCT=$((BRANCH_COVERED * 100 / BRANCH_TOTAL))
+          else
+            BRANCH_PCT=0
+          fi
+          
+          if [ $LINE_TOTAL -gt 0 ]; then
+            LINE_PCT=$((LINE_COVERED * 100 / LINE_TOTAL))
+          else
+            LINE_PCT=0
+          fi
           
           echo "instruction_pct=$INST_PCT" >> $GITHUB_OUTPUT
           echo "branch_pct=$BRANCH_PCT" >> $GITHUB_OUTPUT
@@ -77,25 +134,70 @@ jobs:
           echo "branch_total=$BRANCH_TOTAL" >> $GITHUB_OUTPUT
           echo "line_covered=$LINE_COVERED" >> $GITHUB_OUTPUT
           echo "line_total=$LINE_TOTAL" >> $GITHUB_OUTPUT
+        else
+          echo "instruction_pct=0" >> $GITHUB_OUTPUT
+          echo "branch_pct=0" >> $GITHUB_OUTPUT
+          echo "line_pct=0" >> $GITHUB_OUTPUT
+          echo "instruction_covered=0" >> $GITHUB_OUTPUT
+          echo "instruction_total=0" >> $GITHUB_OUTPUT
+          echo "branch_covered=0" >> $GITHUB_OUTPUT
+          echo "branch_total=0" >> $GITHUB_OUTPUT
+          echo "line_covered=0" >> $GITHUB_OUTPUT
+          echo "line_total=0" >> $GITHUB_OUTPUT
         fi
 
     - name: Generate Build Summary
       if: always()
       run: |
-        echo "# 🧪 PizzaDronz CI/CD Report" >> $GITHUB_STEP_SUMMARY
+        echo "# 🚀 PizzaDronz CI/CD Build Report" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "**Branch:** \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "**Triggered by:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         
         if [ -d target/surefire-reports ]; then
           TEST_COUNT=$(find target/surefire-reports -name "TEST-*.xml" -exec grep -h "tests=" {} \; | sed 's/.*tests="\([0-9]*\)".*/\1/' | awk '{s+=$1} END {print s}')
           FAILURE_COUNT=$(find target/surefire-reports -name "TEST-*.xml" -exec grep -h "failures=" {} \; | sed 's/.*failures="\([0-9]*\)".*/\1/' | awk '{s+=$1} END {print s}')
           ERROR_COUNT=$(find target/surefire-reports -name "TEST-*.xml" -exec grep -h "errors=" {} \; | sed 's/.*errors="\([0-9]*\)".*/\1/' | awk '{s+=$1} END {print s}')
+          SKIPPED_COUNT=$(find target/surefire-reports -name "TEST-*.xml" -exec grep -h "skipped=" {} \; | sed 's/.*skipped="\([0-9]*\)".*/\1/' | awk '{s+=$1} END {print s}')
           
-          echo "## 🧪 Test Results" >> $GITHUB_STEP_SUMMARY
-          echo "| Metric | Count | Status |" >> $GITHUB_STEP_SUMMARY
-          echo "|--------|-------|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Total Tests | $TEST_COUNT | ✅ |" >> $GITHUB_STEP_SUMMARY
-          echo "| Failures | $FAILURE_COUNT | ${FAILURE_COUNT -eq 0 && '✅' || '❌'} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Errors | $ERROR_COUNT | ${ERROR_COUNT -eq 0 && '✅' || '❌'} |" >> $GITHUB_STEP_SUMMARY
+          # Default to 0 if empty
+          TEST_COUNT=${TEST_COUNT:-0}
+          FAILURE_COUNT=${FAILURE_COUNT:-0}
+          ERROR_COUNT=${ERROR_COUNT:-0}
+          SKIPPED_COUNT=${SKIPPED_COUNT:-0}
+          
+          PASSED_COUNT=$((TEST_COUNT - FAILURE_COUNT - ERROR_COUNT - SKIPPED_COUNT))
+          
+          if [ $FAILURE_COUNT -eq 0 ] && [ $ERROR_COUNT -eq 0 ]; then
+            TEST_STATUS="✅ All Tests Passed"
+          else
+            TEST_STATUS="❌ Tests Failed"
+          fi
+          
+          echo "## $TEST_STATUS" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ $TEST_COUNT -gt 0 ]; then
+            PASSED_PCT=$((PASSED_COUNT * 100 / TEST_COUNT))
+            FAILURE_PCT=$((FAILURE_COUNT * 100 / TEST_COUNT))
+            ERROR_PCT=$((ERROR_COUNT * 100 / TEST_COUNT))
+            SKIPPED_PCT=$((SKIPPED_COUNT * 100 / TEST_COUNT))
+          else
+            PASSED_PCT=0
+            FAILURE_PCT=0
+            ERROR_PCT=0
+            SKIPPED_PCT=0
+          fi
+          
+          echo "| Metric | Count | Percentage |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|------------|" >> $GITHUB_STEP_SUMMARY
+          echo "| ✅ Passed | $PASSED_COUNT | ${PASSED_PCT}% |" >> $GITHUB_STEP_SUMMARY
+          echo "| ❌ Failed | $FAILURE_COUNT | ${FAILURE_PCT}% |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🔴 Errors | $ERROR_COUNT | ${ERROR_PCT}% |" >> $GITHUB_STEP_SUMMARY
+          echo "| ⏭️ Skipped | $SKIPPED_COUNT | ${SKIPPED_PCT}% |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Total** | **$TEST_COUNT** | **100%** |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
         fi
         
