@@ -1,4 +1,4 @@
-﻿name: PizzaDronz CI
+﻿﻿name: PizzaDronz CI
 on:
   push:
     branches: ['**']
@@ -12,14 +12,174 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
+
     - uses: actions/setup-java@v4
       with:
         java-version: 18
         distribution: temurin
         cache: maven
-    - run: mvn test jacoco:report -B
-    - uses: actions/upload-artifact@v4
+
+    - name: Run Tests with Coverage
+      run: mvn test jacoco:report -B
+
+    - name: Publish Test Results
       if: always()
+      uses: dorny/test-reporter@v1
       with:
-        name: jacoco-report
+        name: 📊 Test Results
+        path: target/surefire-reports/*.xml
+        reporter: java-junit
+        fail-on-error: false
+        max-annotations: 50
+
+    - name: Generate Test Summary
+      if: always()
+      run: |
+        echo "# 🧪 Test Execution Report" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Overall stats
+        TOTAL_TESTS=0
+        TOTAL_FAILURES=0
+        TOTAL_ERRORS=0
+        TOTAL_TIME=0
+        
+        echo "## 📋 Test Suites" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "| Suite | Tests | ✅ Pass | ❌ Fail | 🔴 Error | ⏱️ Time |" >> $GITHUB_STEP_SUMMARY
+        echo "|-------|-------|---------|---------|----------|---------|" >> $GITHUB_STEP_SUMMARY
+        
+        for file in target/surefire-reports/TEST-*.xml; do
+          if [ -f "$file" ]; then
+            CLASS=$(grep -oP 'name="\K[^"]+' "$file" | head -1 | sed 's/uk.ac.ed.inf.pizzadronz.//')
+            TESTS=$(grep -oP 'tests="\K[0-9]+' "$file" | head -1)
+            FAILURES=$(grep -oP 'failures="\K[0-9]+' "$file" | head -1)
+            ERRORS=$(grep -oP 'errors="\K[0-9]+' "$file" | head -1)
+            TIME=$(grep -oP 'time="\K[0-9.]+' "$file" | head -1)
+            
+            PASSED=$((TESTS - FAILURES - ERRORS))
+            
+            TOTAL_TESTS=$((TOTAL_TESTS + TESTS))
+            TOTAL_FAILURES=$((TOTAL_FAILURES + FAILURES))
+            TOTAL_ERRORS=$((TOTAL_ERRORS + ERRORS))
+            TOTAL_TIME=$(echo "$TOTAL_TIME + $TIME" | bc)
+            
+            if [ "$FAILURES" = "0" ] && [ "$ERRORS" = "0" ]; then
+              STATUS="✅"
+            else
+              STATUS="❌"
+            fi
+            
+            echo "| $STATUS **$CLASS** | $TESTS | $PASSED | $FAILURES | $ERRORS | ${TIME}s |" >> $GITHUB_STEP_SUMMARY
+          fi
+        done
+        
+        TOTAL_PASSED=$((TOTAL_TESTS - TOTAL_FAILURES - TOTAL_ERRORS))
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "## 📊 Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+        echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+        echo "| **Total Tests** | **$TOTAL_TESTS** |" >> $GITHUB_STEP_SUMMARY
+        echo "| ✅ Passed | $TOTAL_PASSED ($((TOTAL_PASSED * 100 / TOTAL_TESTS))%) |" >> $GITHUB_STEP_SUMMARY
+        echo "| ❌ Failed | $TOTAL_FAILURES |" >> $GITHUB_STEP_SUMMARY
+        echo "| 🔴 Errors | $TOTAL_ERRORS |" >> $GITHUB_STEP_SUMMARY
+        echo "| ⏱️ Total Time | ${TOTAL_TIME}s |" >> $GITHUB_STEP_SUMMARY
+        
+        if [ "$TOTAL_FAILURES" = "0" ] && [ "$TOTAL_ERRORS" = "0" ]; then
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### ✅ All tests passed!" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### ❌ Some tests failed" >> $GITHUB_STEP_SUMMARY
+        fi
+
+    - name: Generate Coverage Summary
+      if: always()
+      run: |
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "## 📊 Code Coverage" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        if [ -f target/site/jacoco/jacoco.csv ]; then
+          TOTALS=$(tail -1 target/site/jacoco/jacoco.csv)
+          IFS=',' read -ra METRICS <<< "$TOTALS"
+          
+          INST_MISSED=${METRICS[3]:-0}
+          INST_COVERED=${METRICS[4]:-0}
+          BRANCH_MISSED=${METRICS[5]:-0}
+          BRANCH_COVERED=${METRICS[6]:-0}
+          LINE_MISSED=${METRICS[7]:-0}
+          LINE_COVERED=${METRICS[8]:-0}
+          
+          INST_TOTAL=$((INST_MISSED + INST_COVERED))
+          BRANCH_TOTAL=$((BRANCH_MISSED + BRANCH_COVERED))
+          LINE_TOTAL=$((LINE_MISSED + LINE_COVERED))
+          
+          if [ $INST_TOTAL -gt 0 ]; then
+            INST_PCT=$((INST_COVERED * 100 / INST_TOTAL))
+          else
+            INST_PCT=0
+          fi
+          
+          if [ $BRANCH_TOTAL -gt 0 ]; then
+            BRANCH_PCT=$((BRANCH_COVERED * 100 / BRANCH_TOTAL))
+          else
+            BRANCH_PCT=0
+          fi
+          
+          if [ $LINE_TOTAL -gt 0 ]; then
+            LINE_PCT=$((LINE_COVERED * 100 / LINE_TOTAL))
+          else
+            LINE_PCT=0
+          fi
+          
+          echo "| Type | Coverage | Covered/Total | Target | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|----------|---------------|--------|--------|" >> $GITHUB_STEP_SUMMARY
+          
+          INST_STATUS="✅"
+          if [ $INST_PCT -lt 80 ]; then
+            INST_STATUS="⚠️"
+          fi
+          
+          BRANCH_STATUS="✅"
+          if [ $BRANCH_PCT -lt 75 ]; then
+            BRANCH_STATUS="⚠️"
+          fi
+          
+          LINE_STATUS="✅"
+          if [ $LINE_PCT -lt 80 ]; then
+            LINE_STATUS="⚠️"
+          fi
+          
+          echo "| 📘 Instruction | **${INST_PCT}%** | $INST_COVERED/$INST_TOTAL | 80% | $INST_STATUS |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🔀 Branch | **${BRANCH_PCT}%** | $BRANCH_COVERED/$BRANCH_TOTAL | 75% | $BRANCH_STATUS |" >> $GITHUB_STEP_SUMMARY
+          echo "| 📝 Line | **${LINE_PCT}%** | $LINE_COVERED/$LINE_TOTAL | 80% | $LINE_STATUS |" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "⚠️ Coverage data not available" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "---" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 📦 Artifacts" >> $GITHUB_STEP_SUMMARY
+        echo "- 📊 **JaCoCo Coverage Report** - Download for detailed HTML report" >> $GITHUB_STEP_SUMMARY
+        echo "- 🧪 **Test Results** - Download for detailed test reports" >> $GITHUB_STEP_SUMMARY
+
+    - name: Upload Coverage Report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: jacoco-coverage-report
         path: target/site/jacoco/
+        retention-days: 30
+
+    - name: Upload Test Results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results
+        path: target/surefire-reports/
+        retention-days: 30
+
