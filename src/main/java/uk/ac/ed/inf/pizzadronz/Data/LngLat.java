@@ -1,6 +1,6 @@
-package uk.ac.ed.inf.pizzadronz.data;
+package uk.ac.ed.inf.pizzadronz.Data;
 
-import uk.ac.ed.inf.pizzadronz.constants.SystemConstants;
+import uk.ac.ed.inf.pizzadronz.Constants.SystemConstants;
 
 
 public record LngLat(

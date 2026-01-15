@@ -1,7 +1,7 @@
-package uk.ac.ed.inf.pizzadronz.data;
+package uk.ac.ed.inf.pizzadronz.Data;
 
-import uk.ac.ed.inf.pizzadronz.constants.OrderValidationCode;
-import uk.ac.ed.inf.pizzadronz.constants.OrderStatus;
+import uk.ac.ed.inf.pizzadronz.Constants.OrderValidationCode;
+import uk.ac.ed.inf.pizzadronz.Constants.OrderStatus;
 
 import java.time.LocalDate;
 import java.util.Arrays;
@@ -84,8 +84,7 @@ public final class Order {
     /**
      * bare bone default constructor
      */
-    public Order() {
-
+    public Order(){
     }
 
     @Override
@@ -205,4 +204,6 @@ public final class Order {
     public void setCreditCardInformation(CreditCardInformation creditCardInformation) {
         this.creditCardInformation = creditCardInformation;
     }
+
+
 }

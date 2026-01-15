@@ -1,7 +1,7 @@
 package uk.ac.ed.inf.pizzadronz.RequestBodies;
 
-import uk.ac.ed.inf.pizzadronz.data.LngLat;
-import uk.ac.ed.inf.pizzadronz.data.NamedRegion;
+import uk.ac.ed.inf.pizzadronz.Data.LngLat;
+import uk.ac.ed.inf.pizzadronz.Data.NamedRegion;
 
 
 public record PositionRegionPair(LngLat position,NamedRegion region) {

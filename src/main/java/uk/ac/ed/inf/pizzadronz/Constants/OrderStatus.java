@@ -1,4 +1,4 @@
-package uk.ac.ed.inf.pizzadronz.constants;
+package uk.ac.ed.inf.pizzadronz.Constants;
 
 public enum OrderStatus {
     /**

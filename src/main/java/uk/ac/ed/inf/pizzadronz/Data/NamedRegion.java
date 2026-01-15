@@ -1,4 +1,4 @@
-package uk.ac.ed.inf.pizzadronz.data;
+package uk.ac.ed.inf.pizzadronz.Data;
 
 import javax.validation.constraints.NotNull;
 import java.util.ArrayList;

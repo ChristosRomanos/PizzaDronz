@@ -1,10 +1,10 @@
 package uk.ac.ed.inf.pizzadronz.Services;
 
 import org.springframework.stereotype.Service;
-import uk.ac.ed.inf.pizzadronz.constants.SystemConstants;
-import uk.ac.ed.inf.pizzadronz.data.LngLat;
-import uk.ac.ed.inf.pizzadronz.data.NamedRegion;
-import uk.ac.ed.inf.pizzadronz.ServiceInterface.LngLatHandling;
+import uk.ac.ed.inf.pizzadronz.Constants.SystemConstants;
+import uk.ac.ed.inf.pizzadronz.Data.LngLat;
+import uk.ac.ed.inf.pizzadronz.Data.NamedRegion;
+import uk.ac.ed.inf.pizzadronz.ServiceInterfaces.LngLatHandling;
 
 import javax.validation.constraints.NotNull;
 import java.util.Objects;
@@ -101,20 +101,21 @@ public class LngLatService implements LngLatHandling {
 
     @Override
     public LngLat nextPosition(@NotNull LngLat start,@NotNull Double angle) {
-        if (!validAngle(angle)){
 
+        if (!validAngle(angle)){
             throw new RuntimeException("Invalid angle");
         }
         if (angle==SystemConstants.DRONE_HOVERING_ANGLE){
             return start;
         }
-        double lng=start.lng()+Math.cos(Math.toRadians(angle))* SystemConstants.DRONE_MOVE_DISTANCE;
+        double lng=start.lng()+(Math.cos(Math.toRadians(angle))* SystemConstants.DRONE_MOVE_DISTANCE);
+
         double lat=start.lat()+Math.sin(Math.toRadians(angle))* SystemConstants.DRONE_MOVE_DISTANCE;
         return new LngLat(lng,lat);
     }
     @Override
     public boolean validAngle(double angle){
-        return (angle==SystemConstants.DRONE_HOVERING_ANGLE || angle>=0&&angle<360);
+        return (angle==SystemConstants.DRONE_HOVERING_ANGLE || (angle>=0&&angle<360));
     }
 }
 

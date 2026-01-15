@@ -1,9 +1,14 @@
-package uk.ac.ed.inf.pizzadronz.ServiceInterface;
-import org.springframework.stereotype.Service;
-import uk.ac.ed.inf.pizzadronz.data.Order;
-import uk.ac.ed.inf.pizzadronz.data.Restaurant;
-@Service
+package uk.ac.ed.inf.pizzadronz.ServiceInterfaces;
+import uk.ac.ed.inf.pizzadronz.Data.Order;
+import uk.ac.ed.inf.pizzadronz.Data.OrderValidationResult;
+import uk.ac.ed.inf.pizzadronz.Data.Restaurant;
+
+import java.time.LocalDate;
+
+
 public interface OrderValidation {
+    Restaurant restaurant = null;
+    LocalDate date = null;
     /**
      * interface to validate an order
      */
@@ -28,6 +33,14 @@ public interface OrderValidation {
      * @param definedRestaurants is the vector of defined restaurants with their according menu structure
      * @return the validated order
      */
-    Order validateOrder(Order orderToValidate, Restaurant[] definedRestaurants);
+    OrderValidationResult validateOrder(Order orderToValidate, Restaurant[] definedRestaurants);
 
+    /**
+     * Validates an order and if it has no errors ,returns restaurant for the order
+     *
+     * @param order       is the order to be validated and find the restaurant for
+     * @param restaurants is the list of restaurants to search in
+     * @return the restaurant for the order
+     */
+    Restaurant validateAndGetRestaurant(Order order, Restaurant[] restaurants);
 }

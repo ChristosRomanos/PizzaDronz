@@ -31,3 +31,17 @@ build/
 
 ### VS Code ###
 .vscode/
+# Large files
+ilp_submission_image.tar
+*.tar
+# Build artifacts
+target/
+*.class
+# IDE files
+.idea/
+*.iml
+.vscode/
+# OS files
+.DS_Store
+desktop.ini
+Thumbs.db

@@ -1,10 +1,8 @@
 package uk.ac.ed.inf.pizzadronz.RequestBodies;
 
-import uk.ac.ed.inf.pizzadronz.constants.SystemConstants;
-import uk.ac.ed.inf.pizzadronz.data.LngLat;
-import javax.validation.constraints.DecimalMax;
-import javax.validation.constraints.DecimalMin;
-import javax.validation.constraints.NotNull;
+import uk.ac.ed.inf.pizzadronz.Constants.SystemConstants;
+import uk.ac.ed.inf.pizzadronz.Data.LngLat;
+
 
 public record PositionAnglePair(LngLat start,
         Double angle) {
@@ -15,7 +13,7 @@ public record PositionAnglePair(LngLat start,
         if (angle == null) {
             throw new RuntimeException("Angle is null");
         }
-        if (//angle!=SystemConstants.DRONE_HOVERING_ANGLE&&
+        if (angle!=SystemConstants.DRONE_HOVERING_ANGLE&&
                 (angle< SystemConstants.MIN_ANGLE || angle >= SystemConstants.MAX_ANGLE)) {
             throw new RuntimeException("Angle is out of bounds");
         }

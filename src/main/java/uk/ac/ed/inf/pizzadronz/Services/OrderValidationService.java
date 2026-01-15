@@ -2,12 +2,11 @@ package uk.ac.ed.inf.pizzadronz.Services;
 
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
-import uk.ac.ed.inf.pizzadronz.ServiceInterface.OrderValidation;
-import uk.ac.ed.inf.pizzadronz.constants.OrderStatus;
-import uk.ac.ed.inf.pizzadronz.constants.OrderValidationCode;
-import uk.ac.ed.inf.pizzadronz.constants.SystemConstants;
-import uk.ac.ed.inf.pizzadronz.data.*;
+import uk.ac.ed.inf.pizzadronz.ServiceInterfaces.OrderValidation;
+import uk.ac.ed.inf.pizzadronz.Constants.OrderStatus;
+import uk.ac.ed.inf.pizzadronz.Constants.OrderValidationCode;
+import uk.ac.ed.inf.pizzadronz.Constants.SystemConstants;
+import uk.ac.ed.inf.pizzadronz.Data.*;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -16,88 +15,66 @@ import java.util.Calendar;
 
 @Service
 public class OrderValidationService implements OrderValidation {
-    private Restaurant restaurant;
     private LocalDate date;
+    private Restaurant restaurant;
 
-
-    public Order validateOrder(@NotNull Order order, Restaurant[] definedRestaurants) {
+    @Override
+    public OrderValidationResult validateOrder(@NotNull Order order, Restaurant[] definedRestaurants) {
         date= LocalDate.now();
         if (definedRestaurants==null || definedRestaurants.length==0){
             throw new IllegalArgumentException("No restaurants defined");
         }
 
         OrderValidationCode validationCode=checkOrderDate(order.getOrderDate());
-        if (validationCode != OrderValidationCode.NO_ERROR) {
-            if(validationCode==OrderValidationCode.UNDEFINED){
-                order.setOrderStatus(OrderStatus.UNDEFINED);
-            }else {
-                order.setOrderStatus(OrderStatus.INVALID);
-            }
-            order.setOrderValidationCode(validationCode);
-            return order;
+        if(invalidCode(validationCode, order)){
+            return new OrderValidationResult(order.getOrderStatus(),order.getOrderValidationCode());
         }
 
         validationCode=checkCreditCardInformation(order.getCreditCardInformation());
-        if (validationCode != OrderValidationCode.NO_ERROR) {
-            if (validationCode==OrderValidationCode.UNDEFINED){
-                order.setOrderStatus(OrderStatus.UNDEFINED);
-            }else {
-                order.setOrderStatus(OrderStatus.INVALID);
-            }
-            order.setOrderValidationCode(validationCode);
-            return order;
-        }
-        if(order.getPizzasInOrder().length==0){
-            validationCode=OrderValidationCode.EMPTY_ORDER;
-        }else {
-            validationCode = checkIfRestaurantExists(order.getPizzasInOrder()[0], definedRestaurants);
+        if(invalidCode(validationCode, order)){
+            return new OrderValidationResult(order.getOrderStatus(),order.getOrderValidationCode());
         }
 
-        if (validationCode != OrderValidationCode.NO_ERROR) {
-            if (validationCode==OrderValidationCode.UNDEFINED){
-                order.setOrderStatus(OrderStatus.UNDEFINED);
-            }else {
-                order.setOrderStatus(OrderStatus.INVALID);
-            }
-            order.setOrderValidationCode(validationCode);
-            return order;
+       validationCode=checkPizzasInOrder(order.getPizzasInOrder(),definedRestaurants);
+        if(invalidCode(validationCode, order)){
+            return new OrderValidationResult(order.getOrderStatus(),order.getOrderValidationCode());
         }
 
         validationCode=checkIfRestaurantIsOpen(restaurant,order.getOrderDate());
-        if (validationCode != OrderValidationCode.NO_ERROR) {
-            if (validationCode==OrderValidationCode.UNDEFINED){
-                order.setOrderStatus(OrderStatus.UNDEFINED);
-            }else {
-                order.setOrderStatus(OrderStatus.INVALID);
-            }
-            order.setOrderValidationCode(validationCode);
-            return order;
+        if(invalidCode(validationCode, order)){
+            return new OrderValidationResult(order.getOrderStatus(),order.getOrderValidationCode());
         }
 
         validationCode=checkPriceTotalInPenceAndPizzas(order.getPriceTotalInPence(), order.getPizzasInOrder(),definedRestaurants);
-        if (validationCode != OrderValidationCode.NO_ERROR) {
-            if (validationCode==OrderValidationCode.UNDEFINED){
-                order.setOrderStatus(OrderStatus.UNDEFINED);
-            }else {
-                order.setOrderStatus(OrderStatus.INVALID);
-            }
-            order.setOrderValidationCode(validationCode);
-            return order;
+        if(invalidCode(validationCode, order)){
+            return new OrderValidationResult(order.getOrderStatus(),order.getOrderValidationCode());
         }
 
         order.setOrderStatus(OrderStatus.VALID);
         order.setOrderValidationCode(OrderValidationCode.NO_ERROR);
-        return order;
+        return new OrderValidationResult(order.getOrderStatus(),order.getOrderValidationCode());
     }
 
-    public OrderValidationCode checkOrderDate(@NotNull LocalDate orderDate) {
+
+    /**
+     * Check if the order date is before the current date
+     * @param orderDate the date of the order
+     * @return OrderValidationCode
+     */
+    private OrderValidationCode checkOrderDate(@NotNull LocalDate orderDate) {
         if (orderDate.isBefore(date)) {
             return OrderValidationCode.UNDEFINED;
         }
         return OrderValidationCode.NO_ERROR;
     }
 
-    public OrderValidationCode checkIfRestaurantIsOpen(@NotNull Restaurant restaurant, LocalDate date) {
+    /**
+     * Check if the restaurant is open on the given date
+     * @param restaurant the restaurant
+     * @param date the date
+     * @return OrderValidationCode
+     */
+    private OrderValidationCode checkIfRestaurantIsOpen(@NotNull Restaurant restaurant, LocalDate date) {
         for (DayOfWeek day : restaurant.openingDays()) {
             if (date.get(ChronoField.DAY_OF_WEEK)==day.getValue()) {
                 return OrderValidationCode.NO_ERROR;
@@ -106,45 +83,76 @@ public class OrderValidationService implements OrderValidation {
         return OrderValidationCode.RESTAURANT_CLOSED;
     }
 
-    public OrderValidationCode checkIfRestaurantExists(@NotNull Pizza pizza, Restaurant[] definedRestaurants) {
-        int colonIndex=pizza.name().indexOf(":");
-        if (colonIndex==-1){
-            return OrderValidationCode.PIZZA_NOT_DEFINED;
+    /**
+     * Check if the number of pizzas in the order are valid and if the restaurant exists
+     * @param pizzas the pizzas in the order
+     * @param definedRestaurants the defined restaurants
+     * @return OrderValidationCode
+     */
+    private OrderValidationCode checkPizzasInOrder(@NotNull Pizza[] pizzas, Restaurant[] definedRestaurants) {
+        if(pizzas.length==0){
+            return OrderValidationCode.EMPTY_ORDER;
         }
-        int restaurantNo=Integer.parseInt(pizza.name().substring(1,colonIndex));
-        if (restaurantNo<1 || restaurantNo>definedRestaurants.length){
-            return OrderValidationCode.PIZZA_NOT_DEFINED;
+        if (pizzas.length > SystemConstants.MAX_PIZZA_COUNT) {
+            return OrderValidationCode.MAX_PIZZA_COUNT_EXCEEDED;
+        }else {
+            return checkIfRestaurantExists(pizzas[0], definedRestaurants);
         }
-        restaurant=definedRestaurants[restaurantNo-1];
-        return OrderValidationCode.NO_ERROR;
     }
 
-    public OrderValidationCode checkPriceTotalInPenceAndPizzas(Integer priceTotalInPence, Pizza[] pizzasInOrder,Restaurant[] definedRestaurants) {
+    /**
+     * Check if the restaurant exists and sets the restaurant of the order
+     * @param pizza the pizza
+     * @param definedRestaurants the defined restaurants
+     * @return OrderValidationCode
+     */
+    private OrderValidationCode checkIfRestaurantExists(@NotNull Pizza pizza, Restaurant[] definedRestaurants) {
+        for (Restaurant restaurant : definedRestaurants) {
+            for (Pizza rPizza : restaurant.menu()) {
+                if (pizza.name().equals(rPizza.name())) {
+                    this.restaurant = restaurant;
+                    return OrderValidationCode.NO_ERROR;
+                }
+            }
+        }
+        return OrderValidationCode.PIZZA_NOT_DEFINED;
+    }
+
+    /**
+     * Check if the price total of the order is correct
+     * @param priceTotalInPence the total price in pence
+     * @param pizzasInOrder the pizzas in the order
+     * @param definedRestaurants the defined restaurants
+     * @return OrderValidationCode
+     */
+    private OrderValidationCode checkPriceTotalInPenceAndPizzas(Integer priceTotalInPence, Pizza[] pizzasInOrder,Restaurant[] definedRestaurants) {
         if (priceTotalInPence < SystemConstants.DELIVERY_FEE) {
             return OrderValidationCode.TOTAL_INCORRECT;
         }
-        if (pizzasInOrder.length > SystemConstants.MAX_PIZZA_COUNT) {
-            return OrderValidationCode.MAX_PIZZA_COUNT_EXCEEDED;
-        } else {
-            int sum = SystemConstants.DELIVERY_FEE;
-            for (Pizza pizza : pizzasInOrder) {
-                OrderValidationCode valid=checkPizza(restaurant,pizza,definedRestaurants);
-                if (valid == OrderValidationCode.NO_ERROR) {
-                    sum += pizza.priceInPence();
-                } else {
-                    return valid;
-                }
+        int sum = SystemConstants.DELIVERY_FEE;
+        for (Pizza pizza : pizzasInOrder) {
+            OrderValidationCode valid=checkPizza(pizza,definedRestaurants);
+            if (valid == OrderValidationCode.NO_ERROR) {
+                sum += pizza.priceInPence();
+            } else {
+                return valid;
             }
-            if (sum != priceTotalInPence) {
-                return OrderValidationCode.TOTAL_INCORRECT;
-            }
-            return OrderValidationCode.NO_ERROR;
         }
+        if (sum != priceTotalInPence) {
+            return OrderValidationCode.TOTAL_INCORRECT;
+        }
+        return OrderValidationCode.NO_ERROR;
+
     }
 
+    /**
+     * Check if the credit card information is valid
+     * @param creditCardInformation the credit card information
+     * @return OrderValidationCode
+     */
     public OrderValidationCode checkCreditCardInformation(@NotNull CreditCardInformation creditCardInformation) {
             // check if the card number is valid
-            if (creditCardInformation.creditCardNumber().length()!=16) {
+            if (creditCardInformation.creditCardNumber().length() != SystemConstants.CREDIT_CARD_NUMBER_LENGTH) {
                 return OrderValidationCode.CARD_NUMBER_INVALID;
             }try {
                 Long.parseLong(creditCardInformation.creditCardNumber());
@@ -153,7 +161,7 @@ public class OrderValidationService implements OrderValidation {
             }
 
             // check if the cvv is valid
-            if (creditCardInformation.cvv().length()!=3) {
+            if (creditCardInformation.cvv().length() != SystemConstants.CVV_LENGTH) {
                 return OrderValidationCode.CVV_INVALID;
             }
             try {
@@ -164,7 +172,8 @@ public class OrderValidationService implements OrderValidation {
             }
 
             // check if the expiry date is valid
-            if (creditCardInformation.creditCardExpiry().length()!=5 || creditCardInformation.creditCardExpiry().charAt(2) != '/') {
+            if (creditCardInformation.creditCardExpiry().length() != SystemConstants.EXPIRY_DATE_LENGTH ||
+                creditCardInformation.creditCardExpiry().charAt(SystemConstants.EXPIRY_DATE_SLASH_POSITION) != '/') {
                 return OrderValidationCode.EXPIRY_DATE_INVALID;
             }
             try {
@@ -190,17 +199,15 @@ public class OrderValidationService implements OrderValidation {
             return OrderValidationCode.NO_ERROR;
         }
 
-    public OrderValidationCode checkPizza(Restaurant restaurant, @NotNull Pizza pizza, Restaurant[] definedRestaurants) {
-        int colonIndex=pizza.name().indexOf(":");
-        if (colonIndex==-1){
-            return OrderValidationCode.PIZZA_NOT_DEFINED;
-        }
-        int restaurantNumber=Integer.parseInt(pizza.name().substring(1,colonIndex));
-        if (definedRestaurants[restaurantNumber-1]!=restaurant){
-            return OrderValidationCode.PIZZA_FROM_MULTIPLE_RESTAURANTS;
-        }
-        restaurant=definedRestaurants[restaurantNumber-1];
-        for (Pizza item : restaurant.menu()) {
+    /**
+     * Check if the pizza's price is valid and if pizza is from the same restaurant as the order's restaurant or from
+     * another restaurant or if the pizza is not defined in any restaurant
+     * @param pizza the pizza
+     * @param definedRestaurants the defined restaurants
+     * @return OrderValidationCode
+     */
+    public OrderValidationCode checkPizza(@NotNull Pizza pizza, Restaurant[] definedRestaurants) {
+        for (Pizza item : this.restaurant.menu()) {
             if (item.name().equals(pizza.name())) {
                 if (!pizza.priceInPence().equals(item.priceInPence())) {
                     return OrderValidationCode.PRICE_FOR_PIZZA_INVALID;
@@ -208,7 +215,40 @@ public class OrderValidationService implements OrderValidation {
                 return OrderValidationCode.NO_ERROR;
             }
         }
+        for (Restaurant r : definedRestaurants) {
+            for (Pizza item : r.menu()) {
+                if (item.name().equals(pizza.name())) {
+                    return OrderValidationCode.PIZZA_FROM_MULTIPLE_RESTAURANTS;
+                }
+            }
+        }
         return OrderValidationCode.PIZZA_NOT_DEFINED;
     }
 
+    /**
+     * Check if the code is invalid
+     * @param validationCode the validation code
+     * @param order the order
+     * @return boolean
+     */
+    private boolean invalidCode(OrderValidationCode validationCode, Order order){
+        if (validationCode != OrderValidationCode.NO_ERROR) {
+            if(validationCode==OrderValidationCode.UNDEFINED){
+                order.setOrderStatus(OrderStatus.INVALID);
+            }else {
+                order.setOrderStatus(OrderStatus.INVALID);
+            }
+            order.setOrderValidationCode(validationCode);
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public Restaurant validateAndGetRestaurant(Order order, Restaurant[] definedRestaurants) {
+         if(validateOrder(order,definedRestaurants).orderValidationCode()==OrderValidationCode.NO_ERROR){
+             return this.restaurant;
+         }
+         throw new IllegalArgumentException("Order not valid with error code : " + order.getOrderValidationCode());
+    }
 }

@@ -1,10 +1,8 @@
-package uk.ac.ed.inf.pizzadronz.ServiceInterface;
-import org.springframework.stereotype.Repository;
-import org.springframework.stereotype.Service;
-import uk.ac.ed.inf.pizzadronz.data.LngLat;
-import uk.ac.ed.inf.pizzadronz.data.NamedRegion;
+package uk.ac.ed.inf.pizzadronz.ServiceInterfaces;
 
-@Service
+import uk.ac.ed.inf.pizzadronz.Data.LngLat;
+import uk.ac.ed.inf.pizzadronz.Data.NamedRegion;
+
 public interface LngLatHandling {
     /**
      * get the distance between two positions
@@ -20,26 +18,38 @@ public interface LngLatHandling {
      * @return if the positions are close*/
 
     boolean isCloseTo(LngLat startPosition, LngLat otherPosition);
-    /*
+        /*
         * special handling shortcut for the central area. Here an implementation might add special improved processing as the central region is always rectangular
         * @param point to be checked
         * @param centralArea the central area
         * @return if the point is in the central area         */
-        /*
+        /**
           check if the @position is in the @region (includes the border)
         * @param position to check
         * @param region as a closed polygon
         * @return if the position is inside the region (including the border)
         */
     boolean isInRegion(LngLat position, NamedRegion region);
-        /*
+        /**
           find the next position if an @angle is applied to a @startPosition
         * @param startPosition is where the start is
         * @param angle is the angle to use in degrees
         * @return the new position after the angle is used
-        */LngLat nextPosition(LngLat startPosition, Double angle);
 
+         */
+    LngLat nextPosition(LngLat startPosition, Double angle);
+
+    /**
+     * check if a region is valid
+     * @param region to check
+     * @return if the region is valid
+     */
     boolean validRegion(NamedRegion region);
 
+    /**
+     * check if an angle is valid
+     * @param droneHoveringAngle to check
+     * @return if the angle is valid
+     */
     boolean validAngle(double droneHoveringAngle);
 }

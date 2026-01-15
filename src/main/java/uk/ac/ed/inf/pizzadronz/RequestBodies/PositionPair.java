@@ -1,9 +1,8 @@
 package uk.ac.ed.inf.pizzadronz.RequestBodies;
 
-import uk.ac.ed.inf.pizzadronz.data.LngLat;
+import uk.ac.ed.inf.pizzadronz.Data.LngLat;
 
-import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
+
 
 public record PositionPair(LngLat position1,LngLat position2) {
     public PositionPair {
