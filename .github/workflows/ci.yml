@@ -2,6 +2,8 @@
 on:
   push:
     branches: ['**']
+  pull_request:
+    branches: ['**']
 
 permissions:
   contents: read
@@ -182,4 +184,3 @@ jobs:
         name: test-results
         path: target/surefire-reports/
         retention-days: 30
-
