@@ -34,3 +34,5 @@ ilp_submission_image.tar
 .DS_Store
 desktop.ini
 Thumbs.db
+# Logs
+logs
