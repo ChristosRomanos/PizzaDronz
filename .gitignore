@@ -35,4 +35,4 @@ ilp_submission_image.tar
 desktop.ini
 Thumbs.db
 # Logs
-logs
+logs/
